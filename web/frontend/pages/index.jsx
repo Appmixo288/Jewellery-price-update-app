@@ -4,20 +4,71 @@ import {
   Layout,
   TextContainer,
   Image,
+  Select,
   Stack,
+  Button,
   Link,
+  TextField,InlineError,
   Heading,
+  FormLayout,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
-
-import { trophyImage } from "../assets";
-
-import { ProductsCard } from "../components";
-
+import {useState, useCallback} from 'react';
+import { useAppBridge } from "@shopify/app-bridge-react";
+import {Update_products_price } from "../apicall/allapi";
 export default function HomePage() {
+  const [value14, setValue14] = useState('14K');
+  const [goldValue,setGoldValue] = useState(0);
+  const app = useAppBridge();
+  const [loadingFlag, setloadingFlag] = useState(false);
+  const [platinumValue,setPlatinumValue] = useState(0);
+  const [error,setError] =useState("");
+  const SubmitPrice =async() => {
+    setloadingFlag(true);
+        if(goldValue <= 0 && platinumValue <= 0)
+        {
+          setError("Please enter price of Gold and Platinum")
+             console.log("error all");
+             setloadingFlag(false);
+        }else{
+          console.log("called api update")
+          setError("")
+          try {
+            const info={
+              gold:goldValue,
+              platinum:platinumValue
+            }
+            let response = await Update_products_price(app, info);
+            console.log("response : ",response)
+            if(response.success)
+            {
+              setloadingFlag(false);
+            }else{
+              console.log("error in api")
+            }
+          } catch (error) {
+            setloadingFlag(false);
+            console.log("error : ",error);
+          }
+           
+        }
+        // else if(goldValue > 0 && platinumValue > 0)
+        // {
+        //   setError("")
+          
+        //   console.log("both call")
+        // }else if(goldValue > 0 && platinumValue<= 0)
+        // {
+        //   setError("")
+        //   console.log("only gold price");
+        // }else if(goldValue<= 0 && platinumValue>0)
+        // {
+        //   setError("")
+        //   console.log("only platinum price")
+        // }
+
+  }
   return (
-    <Page narrowWidth>
-      <TitleBar title="App name" primaryAction={null} />
+    <Page >
       <Layout>
         <Layout.Section>
           <Card sectioned>
@@ -29,57 +80,44 @@ export default function HomePage() {
             >
               <Stack.Item fill>
                 <TextContainer spacing="loose">
-                  <Heading>Nice work on building a Shopify app 🎉</Heading>
-                  <p>
-                    Your app is ready to explore! It contains everything you
-                    need to get started including the{" "}
-                    <Link url="https://polaris.shopify.com/" external>
-                      Polaris design system
-                    </Link>
-                    ,{" "}
-                    <Link url="https://shopify.dev/api/admin-graphql" external>
-                      Shopify Admin API
-                    </Link>
-                    , and{" "}
-                    <Link
-                      url="https://shopify.dev/apps/tools/app-bridge"
-                      external
-                    >
-                      App Bridge
-                    </Link>{" "}
-                    UI library and components.
-                  </p>
-                  <p>
-                    Ready to go? Start populating your app with some sample
-                    products to view and test in your store.{" "}
-                  </p>
-                  <p>
-                    Learn more about building out your app in{" "}
-                    <Link
-                      url="https://shopify.dev/apps/getting-started/add-functionality"
-                      external
-                    >
-                      this Shopify tutorial
-                    </Link>{" "}
-                    📚{" "}
-                  </p>
+                  <Heading>Gold And Platinum Update Price</Heading>
+                  <FormLayout >
+                  <TextField
+                  type="number"
+                    label="Gold Price"
+                    value={goldValue}
+                    onChange={(e) => {
+                      setGoldValue(e);
+                    }}
+                    prefix="₹"
+                    min={0}
+                    placeholder="Enter Gold price"
+                    autoComplete="off"
+                  />
+                  <TextField
+                  type="number"
+                    label="Platinum Price"
+                    value={platinumValue}
+                    onChange={(e) => {
+                      setPlatinumValue(e);
+                    }}
+                    
+                    min={0}
+                    prefix="₹"
+                    placeholder="Enter Platinum price"
+                    autoComplete="off"
+                  />
+                </FormLayout>
+                <InlineError message={error} />
+
+                <Button primary onClick={SubmitPrice} loading={loadingFlag}>Save Gold and platinum Price</Button>
                 </TextContainer>
               </Stack.Item>
-              <Stack.Item>
-                <div style={{ padding: "0 20px" }}>
-                  <Image
-                    source={trophyImage}
-                    alt="Nice work on building a Shopify app"
-                    width={120}
-                  />
-                </div>
-              </Stack.Item>
+            
             </Stack>
           </Card>
         </Layout.Section>
-        <Layout.Section>
-          <ProductsCard />
-        </Layout.Section>
+        
       </Layout>
     </Page>
   );

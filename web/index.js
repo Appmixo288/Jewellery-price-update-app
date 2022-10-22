@@ -2,6 +2,7 @@
 import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
+import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import { Shopify, LATEST_API_VERSION } from "@shopify/shopify-api";
 
@@ -12,9 +13,9 @@ import productCreator from "./helpers/product-creator.js";
 import redirectToAuth from "./helpers/redirect-to-auth.js";
 import { BillingInterval } from "./helpers/ensure-billing.js";
 import { AppInstallations } from "./app_installations.js";
-
+import priceRouter from "./services/routes/price.routes.js"
 const USE_ONLINE_TOKENS = false;
-
+import cors from "cors";
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT, 10);
 
 // TODO: There should be provided by env vars
@@ -83,7 +84,15 @@ export async function createServer(
   billingSettings = BILLING_SETTINGS
 ) {
   const app = express();
-
+  
+  app.use(cors());
+  app.use(
+    bodyParser.urlencoded({
+      parameterLimit: 100000,
+      limit: "50mb",
+      extended: true,
+    })
+  );
   app.set("use-online-tokens", USE_ONLINE_TOKENS);
   app.use(cookieParser(Shopify.Context.API_SECRET_KEY));
 
@@ -114,7 +123,7 @@ export async function createServer(
       billing: billingSettings,
     })
   );
-
+  app.use("/",priceRouter);
   app.get("/api/products/count", async (req, res) => {
     const session = await Shopify.Utils.loadCurrentSession(
       req,
