@@ -36,7 +36,7 @@ router.post("/api/update_price_products", async (req, res) => {
    
     const productsInfo =await GetAllProductsValues(session,countData.count,info);
    
-    return res.status(200).json({success:true,data:productsInfo})
+    return res.status(200).json({success:true,data:true})
 
    } catch (error) {
       console.log("error : ",error)
