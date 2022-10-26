@@ -48,7 +48,8 @@ Shopify.Webhooks.Registry.addHandler("APP_UNINSTALLED", {
 const handleWebhookRequest = async (topic, shop, webhookRequestBody) => {
   // handler triggered when a webhook is sent by the Shopify platform to your application
 
-  console.log("Update came in, ", topic, shop, webhookRequestBody);
+  console.log("Update came in, ");
+  // console.log("Update came in, ", topic, shop, webhookRequestBody);
 }
 
 

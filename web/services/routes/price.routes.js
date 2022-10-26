@@ -55,7 +55,7 @@ const ProductPriceUpdate = async(session,info,data)=>{
 
       const platinumweight = meta.platinum_weight? meta.platinum_weight : 0;
       const platinumoriginal_value = platinumweight * info.platinum;
-      const platinum_disount = meta.platinum_discount ? Math.round((platinumoriginal_value * meta.platinum_discount) /100) :0;
+      const platinum_disount = meta.platinum_discount ? Math.round((platinumoriginal_value * Number(meta.platinum_discount)) /100) :0;
       const platinum_final_value = Math.round(info.platinum * platinumweight);
 
       const product_cno =meta.c_no ?  Math.round(meta.c_no) : 0
@@ -63,11 +63,11 @@ const ProductPriceUpdate = async(session,info,data)=>{
       const grand_original = Math.round((gold_original_value_temp + platinumoriginal_value + product_cno) * 2.125) ; 
       const gst_orginal = Math.round((grand_original* 0.03) / 1.03) + platinum_disount;
 
-      const gemstone_discount = (meta.discount_on_gemstone&&meta.gemstone_charges) ? Math.round((meta.gemstone_charges * meta.discount_on_gemstone)/100) :0
+      const gemstone_discount = (meta.discount_on_gemstone && meta.gemstone_charges) ? Math.round((meta.gemstone_charges * Number(meta.discount_on_gemstone))/100) :0
       const gemstone_final_value =meta.gemstone_charges ?  (meta.gemstone_charges - gemstone_discount) : 0
   
 
-      const making_charges_discount =(meta.making_charges && meta.discount_on_making)? Math.round(meta.making_charges * meta.discount_on_making  / 100):0
+      const making_charges_discount =(meta.making_charges && meta.discount_on_making)? Math.round(meta.making_charges * Number(meta.discount_on_making)  / 100):0
       const final_making_charges =meta.making_charges ? Math.round(meta.making_charges - making_charges_discount) :0
       const subtotal_orignal = Math.round(grand_original - gst_orginal)
       
@@ -75,10 +75,10 @@ const ProductPriceUpdate = async(session,info,data)=>{
       const diamondpolkiweight = (meta.polki_weight ?meta.polki_weight:0 + meta.diamond_weight?meta.diamond_weight:0)
       
       const diamondpolkiprice = Math.round(subtotal_orignal - final_making_charges - gemstone_final_value - gold_original_value)
-      const diamond_disount =meta.discount_on_diamond_polki ?Math.round(diamondpolkiprice * meta.discount_on_diamond_polki / 100) : 0
+      const diamond_disount =meta.discount_on_diamond ?Math.round(diamondpolkiprice * Number(meta.discount_on_diamond) / 100) : 0
       const diamond_final_value = Math.round(diamondpolkiprice)  - diamond_disount 
       const subtotal_final_amount = Math.round(gold_final_value + platinum_final_value + diamond_final_value + final_making_charges + gemstone_final_value) 
-      const discountonmrp = meta.discount_on_mrp ? Math.round(subtotal_final_amount * meta.discount_on_mrp / 100) :0
+      const discountonmrp = meta.discount_on_mrp ? Math.round(subtotal_final_amount * Number(meta.discount_on_mrp) / 100) :0
       const subtotal_final = gold_final_value + diamond_final_value + platinum_final_value + gemstone_final_value + final_making_charges;
       
       const subtotal_after_discount = Math.round(subtotal_final_amount - discountonmrp) 
@@ -91,8 +91,11 @@ const ProductPriceUpdate = async(session,info,data)=>{
       console.log(`subtotal_after_discount
       products id : ${data.id}
       products title : ${data.title}
-      variants price  : ${data.variants.nodes[0].price}   
-      variants id : ${data.variants.nodes[0].id}   
+      gold_disount:${gold_disount}
+      platinum_disount :${platinum_disount}
+      diamond_disount: ${diamond_disount}
+      finalprice : ${finalprice}
+      gemstone_discount : ${gemstone_discount}
       grand_original: ${grand_original}
       `);
       const client = new Shopify.Clients.Graphql(
@@ -104,7 +107,8 @@ const ProductPriceUpdate = async(session,info,data)=>{
          {
            productVariantUpdate(input: 
              {
-               price: "${grand_original}", 
+               price: "${finalprice}",
+               compareAtPrice:"${grand_original}", 
                id: "${data.variants.nodes[0].id}",
              })
              {
@@ -114,7 +118,7 @@ const ProductPriceUpdate = async(session,info,data)=>{
              }
          }`,
        });
-       console.log("for Data products data : ",forData)
+      //  console.log("for Data products data : ",forData)
       console.log("+++++++++++++++++++++++++++++++++++")
       return Promise.resolve(true);
    } catch (error) {
@@ -204,6 +208,7 @@ const GetAllProductsValues = async(session,count,info)=>{
                 let id = data.node.id.split("Product/")[1]
                 let metafieldData = await GetProductMetafieldsValues(session,id)
                 console.log("first time products :",id);
+                // console.log("metafieldData : ",metafieldData)
                 const pro_data = {
                   id:id,
                   productType:data.node.productType,
