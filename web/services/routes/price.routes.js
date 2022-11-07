@@ -36,7 +36,7 @@ router.post("/api/update_price_products", async (req, res) => {
    
     const productsInfo =await GetAllProductsValues(session,countData.count,info);
    
-    return res.status(200).json({success:true,data:true})
+    return res.status(200).json({success:true,data:productsInfo})
 
    } catch (error) {
       console.log("error : ",error)
@@ -86,41 +86,47 @@ const ProductPriceUpdate = async(session,info,data)=>{
       const final_gst = Math.round(subtotal_after_discount * 0.03) 
      
       const finalprice = subtotal_after_discount + final_gst
-      console.log("+++++++++++++++++++++++++++++++++++")
-       
-      console.log(`subtotal_after_discount
-      products id : ${data.id}
-      products title : ${data.title}
-      gold_disount:${gold_disount}
-      platinum_disount :${platinum_disount}
-      diamond_disount: ${diamond_disount}
-      finalprice : ${finalprice}
-      gemstone_discount : ${gemstone_discount}
-      grand_original: ${grand_original}
-      `);
-      const client = new Shopify.Clients.Graphql(
-         session.shop,
-         session.accessToken
-       );
-      const forData = await client.query({
-         data: `mutation
-         {
-           productVariantUpdate(input: 
-             {
-               price: "${finalprice}",
-               compareAtPrice:"${grand_original}", 
-               id: "${data.variants.nodes[0].id}",
-             })
-             {
-               product {
-                 id
-               }
-             }
-         }`,
-       });
+      // console.log("+++++++++++++++++++++++++++++++++++")
+      //  
+      // console.log(`subtotal_after_discount
+      // products id : ${data.id}
+      // products title : ${data.title}
+      // gold_disount:${gold_disount}
+      // platinum_disount :${platinum_disount}
+      // diamond_disount: ${diamond_disount}
+      // finalprice : ${finalprice}
+      // gemstone_discount : ${gemstone_discount}
+      // grand_original: ${grand_original}
+      // `);
+      // console.log("products id : ",data.variants.nodes[0].id)
+      // const client = new Shopify.Clients.Graphql(
+      //    session.shop,
+      //    session.accessToken
+      //  );
+      // setTimeout(async()=>{
+        // const forData = await client.query({
+        //   data: `mutation
+        //   {
+        //     productVariantUpdate(input: 
+        //       {
+        //         price: "${finalprice}",
+        //         compareAtPrice:"${grand_original}", 
+        //         id: "${data.variants.nodes[0].id}",
+        //       })
+        //       {
+        //         product {
+        //           id
+        //         }
+        //       }
+        //   }`,
+        // });
+      //   console.log("update price.....")
+      // },1000);
       //  console.log("for Data products data : ",forData)
-      console.log("+++++++++++++++++++++++++++++++++++")
-      return Promise.resolve(true);
+      // console.log("+++++++++++++++++++++++++++++++++++")
+      // return Promise.resolve(true);
+      return Promise.resolve({finalprice:finalprice,grand_original:grand_original});
+
    } catch (error) {
       console.log("PRoductPriceUpdate error : ",error);
       return Promise.reject(false);
@@ -151,6 +157,14 @@ const productsGetquery = async(first,id)=>
                     price
                   }
                 }
+                metafields(first: 40) {
+                  nodes {
+                    id
+                  key
+                    namespace
+                   value
+                  }
+                }
                }
              }
          }
@@ -176,6 +190,14 @@ const productsGetquery = async(first,id)=>
                     price
                   }
                 }
+                metafields(first: 40) {
+                  nodes {
+                    id
+                  key
+                    namespace
+                   value
+                  }
+                }
                }
              }
          }
@@ -184,7 +206,8 @@ const productsGetquery = async(first,id)=>
 }
 const GetAllProductsValues = async(session,count,info)=>{
    try {
-      const first = 2;
+      const first =1;
+      let count_product = 0;
       const productsData = [];
        // `session` is built as part of the OAuth process
        const client = new Shopify.Clients.Graphql(
@@ -202,29 +225,53 @@ const GetAllProductsValues = async(session,count,info)=>{
          //  console.log("first : ",hasNextPage,"\n",endCursor,"\n",productArray)
           for(let i = 0 ;i<count;i=i+first) 
           {
-            let co = 0;
              productArray.map(async(data)=>{
                
                 let id = data.node.id.split("Product/")[1]
-                let metafieldData = await GetProductMetafieldsValues(session,id)
-                console.log("first time products :",id);
-                // console.log("metafieldData : ",metafieldData)
+                // let metafieldData = await GetProductMetafieldsValues(session,id)
+                let metafieldData = await GetProductsMetafieldsJSON(data.node.metafields.nodes)
+                count_product++;
+                console.log(`products  ${count_product}  :  ${id}`);
+                console.log("metafieldData : ",Object.keys(metafieldData).length)
                 const pro_data = {
+                  index:count_product,
                   id:id,
-                  productType:data.node.productType,
-                  title:data.node.title,
-                  variants:data.node.variants,
+                  // productType:data.node.productType,
+                  // title:data.node.title,
+                  // variants:data.node.variants,
+                  variant_id:data.node.variants.nodes[0].id,
                   metafieldData:metafieldData
                }
                 const cal_price = await ProductPriceUpdate(session,info,pro_data);
-              await productsData.push({
-                  id:data.node.id,
-                  productType:data.node.productType,
-                  title:data.node.title,
-                  variants:data.node.variants,
-                  metafieldData:metafieldData
-               })
-               // console.log("----------------length : ",productsData.length)
+                pro_data.finalprice = cal_price.finalprice
+                pro_data.grand_original = cal_price.grand_original
+                const push =  await productsData.push(pro_data)
+                console.log("products id : ",data.node.variants.nodes[0].id)
+                // const forData = await client.query({
+                //   data: `mutation
+                //   {
+                //     productVariantUpdate(input: 
+                //       {
+                //         price: "${cal_price.finalprice}",
+                //         compareAtPrice:"${cal_price.grand_original}", 
+                //         id: "${data.node.variants.nodes[0].id}",
+                //       })
+                //       {
+                //         product {
+                //           id
+                //         }
+                //       }
+                //   }`,
+                // });
+                // console.log("forData : ",forData)
+                console.log("push : ",push);
+                if(push === count)
+                {
+                  const update_price_products = await UpdateProductsPrice(session,productsData);
+                  console.log("update_price_products : ",update_price_products)
+                  
+                }
+                // console.log("----------------length : ",productsData.length)
              })
             if(hasNextPage)
             {
@@ -238,11 +285,67 @@ const GetAllProductsValues = async(session,count,info)=>{
             }
           }
        }
-    return Promise.resolve(productsData)
+      
+      
+       return Promise.resolve(true);
+       
    } catch (error) {
       console.log("GetAllProductsValues error : ",error)
       return Promise.reject(false)
    }
+}
+const UpdateProductsPrice = async(session,info)=>{
+    try {
+      console.log("info : ",info.length)
+      const client = new Shopify.Clients.Graphql(
+        session.shop,
+        session.accessToken
+      );
+      for(let i=0 ; i<info.length ; i++)
+      {
+        if(info[i].finalprice && info[i].grand_original)
+        {
+           console.log(`index : ${i}  variant_id:${info[i].variant_id}  compareAtPrice:${info[i].grand_original} =======  price :${info[i].finalprice}  `)
+          const queryStr =`mutation
+          {
+            productVariantUpdate(input: 
+              {
+                id: "${info[i].variant_id}",
+                price: "${info[i].finalprice}",
+                compareAtPrice:"${info[i].grand_original}", 
+              })
+              {
+                product {
+                  id
+                }
+              }
+          }`;
+            const forData = await client.query({data: queryStr});
+            console.log("info : ",i)
+         }
+                // console.log("forData : ",forData)
+      }
+      return Promise.resolve(true)
+    } catch (error) {
+      console.log("UpdateProductsPrice Error: ",error); 
+      return Promise.reject(false);     
+    }
+}
+const GetProductsMetafieldsJSON = async(metaData)=>{
+  try {
+   let jsonData = {}
+  if(Object.keys(metaData).length)
+  {
+    metaData.map((data)=>{
+      jsonData[data.key]=data.value; 
+    })
+  }
+  return Promise.resolve(jsonData);
+}catch (error){
+    console.log("error : ",error)
+    
+  return Promise.reject(false);
+ }
 }
 const GetProductMetafieldsValues = async (session,id)=>{
    try {
